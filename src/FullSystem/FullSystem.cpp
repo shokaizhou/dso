@@ -799,12 +799,10 @@ void FullSystem::flagPointsForRemoval()
 }
 
 
-void FullSystem::addActiveFrame( ImageAndExposure* image, int id )
+SE3 FullSystem::addActiveFrame( ImageAndExposure* image, int id )
 {
-
-    if(isLost) return;
+    if(isLost) return SE3();
 	boost::unique_lock<boost::mutex> lock(trackMutex);
-
 
 	// =========================== add into allFrameHistory =========================
 	FrameHessian* fh = new FrameHessian();
@@ -846,7 +844,7 @@ void FullSystem::addActiveFrame( ImageAndExposure* image, int id )
 			fh->shell->poseValid = false;
 			delete fh;
 		}
-		return;
+		return SE3();
 	}
 	else	// do front-end operation.
 	{
@@ -863,7 +861,7 @@ void FullSystem::addActiveFrame( ImageAndExposure* image, int id )
         {
             printf("Initial Tracking failed: LOST!\n");
 			isLost=true;
-            return;
+            return SE3();
         }
 
 		bool needToMakeKF = false;
@@ -893,12 +891,9 @@ void FullSystem::addActiveFrame( ImageAndExposure* image, int id )
         for(IOWrap::Output3DWrapper* ow : outputWrapper)
             ow->publishCamPose(fh->shell, &Hcalib);
 
-
-
-
 		lock.unlock();
 		deliverTrackedFrame(fh, needToMakeKF);
-		return;
+		return fh->shell->camToWorld;
 	}
 }
 void FullSystem::deliverTrackedFrame(FrameHessian* fh, bool needKF)
